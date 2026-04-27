@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カルテノート</title>
+<meta property="og:title" content="カルテノート">
+<meta property="og:description" content="症状・お薬メモを記録できる健康日記アプリ">
+<meta name="apple-mobile-web-app-title" content="カルテノート">
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Tokumin:wght@400;700;800&family=M+PLUS+Rounded+1c:wght@300;400;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --paper: #fdfaf4;
+    --ink: #1a1410;
+    --ink-light: #6b5f52;
+    --accent: #c2543a;
+    --accent2: #4a7c6f;
+    --line: #e0d9cc;
+    --pill: #d4e8e3;
+    --pill-text: #2a5f54;
+    --tag-symptom: #f5e6e0;
+    --tag-symptom-text: #8b3a28;
+    --tag-memo: #e8edd5;
+    --tag-memo-text: #4a5e20;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+font-family: ‘M PLUS Rounded 1c’, sans-serif;
+color: var(–ink);
+min-height: 100vh;
+background-image:
+radial-gradient(ellipse at 20% 10%, rgba(194,84,58,0.06) 0%, transparent 50%),
+radial-gradient(ellipse at 80% 90%, rgba(74,124,111,0.06) 0%, transparent 50%);
+}
+
+header {
+padding: 2rem 1.5rem 1rem;
+border-bottom: 2px solid var(–ink);
+background: var(–paper);
+position: sticky;
+top: 0;
+z-index: 100;
+display: flex;
+align-items: baseline;
+gap: 1rem;
+box-shadow: 0 2px 0 var(–line);
+}
+
+.logo {
+font-size: 1.8rem;
+font-weight: 800;
+letter-spacing: 0.05em;
+line-height: 1;
+}
+.logo span { color: var(–accent); }
+
+.subtitle {
+font-size: 0.75rem;
+color: var(–ink-light);
+font-family: ‘DM Mono’, monospace;
+letter-spacing: 0.1em;
+}
+
+.main {
+max-width: 680px;
+margin: 0 auto;
+padding: 1.5rem 1rem 6rem;
+}
+
+/* 入力フォーム */
+.form-card {
+background: var(–paper);
+border: 1.5px solid var(–ink);
+border-radius: 2px;
+padding: 1.5rem;
+margin-bottom: 2rem;
+position: relative;
+}
+
+.form-card::before {
+content: ‘’;
+position: absolute;
+top: 6px; left: 6px; right: -6px; bottom: -6px;
+border: 1.5px solid var(–line);
+border-radius: 2px;
+z-index: -1;
+}
+
+.form-title {
+font-size: 0.7rem;
+letter-spacing: 0.2em;
+color: var(–ink-light);
+font-family: ‘DM Mono’, monospace;
+margin-bottom: 1rem;
+text-transform: uppercase;
+}
+
+.type-selector {
+display: flex;
+gap: 0.5rem;
+margin-bottom: 1rem;
+}
+
+.type-btn {
+padding: 0.4rem 1rem;
+border: 1.5px solid var(–ink);
+background: transparent;
+font-family: ‘M PLUS Rounded 1c’, sans-serif;
+font-size: 0.85rem;
+cursor: pointer;
+border-radius: 2px;
+transition: all 0.15s;
+color: var(–ink);
+}
+
+.type-btn.active[data-type=“symptom”] {
+background: var(–tag-symptom);
+border-color: var(–accent);
+color: var(–tag-symptom-text);
+font-weight: 600;
+}
+
+.type-btn.active[data-type=“memo”] {
+background: var(–tag-memo);
+border-color: var(–accent2);
+color: var(–tag-memo-text);
+font-weight: 600;
+}
+
+textarea {
+width: 100%;
+border: 1.5px solid var(–line);
+border-radius: 2px;
+padding: 0.85rem;
+font-family: ‘M PLUS Rounded 1c’, sans-serif;
+font-size: 1rem;
+line-height: 1.8;
+background: var(–bg);
+color: var(–ink);
+resize: none;
+outline: none;
+transition: border-color 0.2s;
+}
+
+textarea:focus { border-color: var(–ink); }
+
+.form-footer {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-top: 0.75rem;
+}
+
+.now-time {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+color: var(–ink-light);
+}
+
+.submit-btn {
+padding: 0.55rem 1.5rem;
+background: var(–ink);
+color: var(–paper);
+border: none;
+font-family: ‘M PLUS Rounded 1c’, sans-serif;
+font-size: 0.9rem;
+cursor: pointer;
+border-radius: 2px;
+transition: opacity 0.2s;
+letter-spacing: 0.05em;
+}
+
+.submit-btn:hover { opacity: 0.8; }
+.submit-btn:active { opacity: 0.6; transform: translateY(1px); }
+
+/* タイムライン */
+.timeline-header {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+margin-bottom: 1.25rem;
+}
+
+.timeline-label {
+font-size: 0.7rem;
+letter-spacing: 0.2em;
+color: var(–ink-light);
+font-family: ‘DM Mono’, monospace;
+text-transform: uppercase;
+}
+
+.timeline-line {
+flex: 1;
+height: 1px;
+background: var(–line);
+}
+
+.entries-container { position: relative; }
+
+/* 日付グループ */
+.date-group { margin-bottom: 2rem; }
+
+.date-label {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+margin-bottom: 1rem;
+position: sticky;
+top: 78px;
+background: var(–bg);
+padding: 0.3rem 0;
+z-index: 10;
+}
+
+.date-text {
+font-size: 0.78rem;
+font-family: ‘DM Mono’, monospace;
+color: var(–ink-light);
+white-space: nowrap;
+}
+
+.date-dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: var(–ink);
+flex-shrink: 0;
+}
+
+.date-line-right {
+flex: 1;
+height: 1px;
+background: var(–line);
+}
+
+/* エントリーカード */
+.entry {
+display: flex;
+gap: 1rem;
+margin-bottom: 1rem;
+animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+from { opacity: 0; transform: translateY(8px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.entry-time-col {
+width: 48px;
+flex-shrink: 0;
+text-align: right;
+padding-top: 0.9rem;
+}
+
+.entry-time {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+color: var(–ink-light);
+}
+
+.entry-connector {
+width: 20px;
+flex-shrink: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding-top: 1rem;
+}
+
+.entry-dot {
+width: 10px; height: 10px;
+border-radius: 50%;
+border: 2px solid var(–ink);
+background: var(–paper);
+flex-shrink: 0;
+margin-top: 2px;
+}
+
+.entry-dot.symptom { border-color: var(–accent); background: var(–tag-symptom); }
+.entry-dot.memo { border-color: var(–accent2); background: var(–tag-memo); }
+
+.entry-vline {
+width: 1px;
+flex: 1;
+background: var(–line);
+margin-top: 4px;
+min-height: 20px;
+}
+
+.entry-body {
+flex: 1;
+background: var(–paper);
+border: 1px solid var(–line);
+border-radius: 2px;
+padding: 0.85rem 1rem;
+margin-bottom: 0;
+position: relative;
+}
+
+.entry-body.symptom { border-left: 3px solid var(–accent); }
+.entry-body.memo { border-left: 3px solid var(–accent2); }
+
+.entry-tag {
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+font-family: ‘DM Mono’, monospace;
+padding: 0.15rem 0.5rem;
+border-radius: 2px;
+display: inline-block;
+margin-bottom: 0.5rem;
+}
+
+.entry-tag.symptom {
+background: var(–tag-symptom);
+color: var(–tag-symptom-text);
+}
+
+.entry-tag.memo {
+background: var(–tag-memo);
+color: var(–tag-memo-text);
+}
+
+.entry-text {
+font-size: 0.95rem;
+line-height: 1.8;
+color: var(–ink);
+word-break: break-all;
+white-space: pre-wrap;
+}
+
+.entry-delete {
+position: absolute;
+top: 0.5rem; right: 0.5rem;
+background: none;
+border: none;
+color: var(–line);
+cursor: pointer;
+font-size: 0.9rem;
+line-height: 1;
+padding: 2px 4px;
+transition: color 0.15s;
+}
+.entry-delete:hover { color: var(–accent); }
+
+/* 空状態 */
+.empty-state {
+text-align: center;
+padding: 3rem 1rem;
+color: var(–ink-light);
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.empty-text { font-size: 0.9rem; line-height: 1.8; }
+
+/* フィルター */
+.filter-bar {
+display: flex;
+gap: 0.5rem;
+margin-bottom: 1.5rem;
+}
+
+.filter-btn {
+padding: 0.3rem 0.9rem;
+border: 1px solid var(–line);
+background: transparent;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+letter-spacing: 0.1em;
+cursor: pointer;
+border-radius: 2px;
+color: var(–ink-light);
+transition: all 0.15s;
+}
+
+.filter-btn.active {
+background: var(–ink);
+color: var(–paper);
+border-color: var(–ink);
+}
+
+.count-badge {
+display: inline-block;
+background: var(–line);
+color: var(–ink-light);
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+padding: 0.1rem 0.4rem;
+border-radius: 10px;
+margin-left: 0.3rem;
+}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div class="logo">カルテ<span>ノート</span></div>
+  <div class="subtitle">health diary</div>
+</header>
+
+<div class="main">
+
+  <!-- 入力フォーム -->
+
+  <div class="form-card">
+    <div class="form-title">— 新しい記録</div>
+    <div class="type-selector">
+      <button class="type-btn active" data-type="symptom" onclick="selectType('symptom')">🩺 症状</button>
+      <button class="type-btn" data-type="memo" onclick="selectType('memo')">💊 お薬メモ</button>
+    </div>
+    <textarea id="inputText" rows="3" placeholder="今日の体調や気になることを書いてください…"></textarea>
+    <div class="form-footer">
+      <div class="now-time" id="nowTime"></div>
+      <button class="submit-btn" onclick="addEntry()">記録する</button>
+    </div>
+  </div>
+
+  <!-- タイムライン -->
+
+  <div class="timeline-header">
+    <div class="timeline-label">タイムライン</div>
+    <div class="timeline-line"></div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">すべて</button>
+    <button class="filter-btn" data-filter="symptom" onclick="setFilter('symptom')">症状のみ</button>
+    <button class="filter-btn" data-filter="memo" onclick="setFilter('memo')">お薬メモのみ</button>
+  </div>
+
+  <div class="entries-container" id="entriesContainer"></div>
+</div>
+
+<script>
+  let entries = JSON.parse(localStorage.getItem('karute_entries') || '[]');
+  let currentType = 'symptom';
+  let currentFilter = 'all';
+
+  function selectType(type) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
+  }
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.filter-btn[data-filter="${filter}"]`).classList.add('active');
+    renderEntries();
+  }
+
+  function updateNowTime() {
+    const now = new Date();
+    const str = now.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })
+      + ' ' + now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('nowTime').textContent = str;
+  }
+
+  function addEntry() {
+    const text = document.getElementById('inputText').value.trim();
+    if (!text) return;
+
+    const now = new Date();
+    const entry = {
+      id: Date.now(),
+      type: currentType,
+      text,
+      date: now.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+      time: now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+      ts: now.getTime()
+    };
+
+    entries.unshift(entry);
+    localStorage.setItem('karute_entries', JSON.stringify(entries));
+    document.getElementById('inputText').value = '';
+    renderEntries();
+  }
+
+  function deleteEntry(id) {
+    entries = entries.filter(e => e.id !== id);
+    localStorage.setItem('karute_entries', JSON.stringify(entries));
+    renderEntries();
+  }
+
+  function renderEntries() {
+    const container = document.getElementById('entriesContainer');
+    const filtered = currentFilter === 'all' ? entries : entries.filter(e => e.type === currentFilter);
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-text">まだ記録がありません。<br>上のフォームから記録を始めましょう。</div>
+        </div>`;
+      return;
+    }
+
+    // 日付グループ化
+    const groups = {};
+    filtered.forEach(e => {
+      if (!groups[e.date]) groups[e.date] = [];
+      groups[e.date].push(e);
+    });
+
+    const tagLabel = { symptom: '症状', memo: 'お薬メモ' };
+
+    let html = '';
+    Object.keys(groups).sort((a,b) => b.localeCompare(a)).forEach(date => {
+      const d = new Date(date.replace(/\//g, '-'));
+      const dateStr = d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      html += `<div class="date-group">
+        <div class="date-label">
+          <div class="date-dot"></div>
+          <div class="date-text">${dateStr}</div>
+          <div class="date-line-right"></div>
+        </div>`;
+
+      groups[date].forEach((entry, idx) => {
+        const isLast = idx === groups[date].length - 1;
+        html += `
+          <div class="entry">
+            <div class="entry-time-col"><div class="entry-time">${entry.time}</div></div>
+            <div class="entry-connector">
+              <div class="entry-dot ${entry.type}"></div>
+              ${!isLast ? '<div class="entry-vline"></div>' : ''}
+            </div>
+            <div class="entry-body ${entry.type}">
+              <button class="entry-delete" onclick="deleteEntry(${entry.id})">✕</button>
+              <div class="entry-tag ${entry.type}">${tagLabel[entry.type]}</div>
+              <div class="entry-text">${escapeHtml(entry.text)}</div>
+            </div>
+          </div>`;
+      });
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  updateNowTime();
+  setInterval(updateNowTime, 30000);
+  renderEntries();
+</script>
+
+</body>
+</html>
