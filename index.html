@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カルテノート</title>
+
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet">
+
+<style>
+body{
+  font-family:'M PLUS Rounded 1c',sans-serif;
+  background:#f4f8f4;
+  padding:20px;
+  color:#333;
+}
+
+h1 span{ color:#7bbf7b; }
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+button{
+  background:#dff5df;
+  color:#4f8f4f;
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+}
+
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:5px;
+  margin-bottom:10px;
+}
+
+.day{
+  padding:10px;
+  background:white;
+  border-radius:8px;
+  text-align:center;
+}
+
+.day.active{ background:#bfe8bf; }
+
+/* タグ */
+.tag{
+  display:inline-block;
+  background:#eef9ee;
+  padding:4px 8px;
+  border-radius:10px;
+  margin:2px;
+  cursor:pointer;
+}
+.tag.active{
+  background:#bfe8bf;
+}
+
+/* 入力 */
+.input-area{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+textarea{
+  flex:1;
+  height:60px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  padding:10px;
+}
+
+.send-btn{
+  background:#bfe8bf;
+}
+
+/* 投稿 */
+.entry{
+  background:white;
+  padding:10px;
+  margin-top:10px;
+  border-left:5px solid #bfe8bf;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>カルテ<span>ノート</span></h1>
+
+<div class="header">
+  <button onclick="prevMonth()">◀</button>
+  <div id="monthLabel"></div>
+  <button onclick="nextMonth()">▶</button>
+</div>
+
+<button onclick="toggleStarFilter()">⭐のみ表示</button>
+
+<div id="calendar" class="calendar"></div>
+
+<!-- タグ追加 -->
+<div>
+  <input id="tagInput" placeholder="タグ追加（頭痛など）">
+  <button onclick="addTag()">追加</button>
+</div>
+
+<!-- タグ選択 -->
+<div id="tagList"></div>
+
+<!-- LINE風入力 -->
+<div class="input-area">
+  <textarea id="text" placeholder="メモを書く"></textarea>
+  <button class="send-btn" onclick="add()">送信</button>
+</div>
+
+<div id="list"></div>
+
+<script>
+let entries = JSON.parse(localStorage.getItem('data')||'[]');
+let tags = JSON.parse(localStorage.getItem('tags')||'[]');
+
+let selectedTags=[];
+let current = new Date();
+let selectedDate = formatDate(current);
+let starOnly=false;
+let filterTag=null;
+
+function formatDate(d){
+  return d.toISOString().slice(0,10);
+}
+
+/* カレンダー */
+function drawCalendar(){
+  const cal=document.getElementById('calendar');
+  cal.innerHTML='';
+  const y=current.getFullYear();
+  const m=current.getMonth();
+  document.getElementById('monthLabel').textContent=`${y}年${m+1}月`;
+
+  const last=new Date(y,m+1,0).getDate();
+
+  for(let i=1;i<=last;i++){
+    const d=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const div=document.createElement('div');
+    div.className='day'+(d===selectedDate?' active':'');
+    div.textContent=i;
+    div.onclick=()=>{selectedDate=d;render();drawCalendar()};
+    cal.appendChild(div);
+  }
+}
+
+/* タグ追加 */
+function addTag(){
+  const val=document.getElementById('tagInput').value.trim();
+  if(!val)return;
+
+  tags.push(val);
+  localStorage.setItem('tags',JSON.stringify(tags));
+  document.getElementById('tagInput').value='';
+  renderTags();
+}
+
+/* タグ表示 */
+function renderTags(){
+  const el=document.getElementById('tagList');
+  el.innerHTML = tags.map(t=>`
+    <span class="tag ${selectedTags.includes(t)?'active':''}" onclick="toggleTag('${t}')">${t}</span>
+  `).join('');
+}
+
+/* 投稿用タグ選択 */
+function toggleTag(tag){
+  if(selectedTags.includes(tag)){
+    selectedTags = selectedTags.filter(t=>t!==tag);
+  }else{
+    selectedTags.push(tag);
+  }
+  renderTags();
+}
+
+/* 記録 */
+function add(){
+  const text=document.getElementById('text').value;
+  if(!text)return;
+
+  entries.unshift({
+    id:Date.now(),
+    text,
+    date:selectedDate,
+    star:false,
+    tags:[...selectedTags]
+  });
+
+  localStorage.setItem('data',JSON.stringify(entries));
+  document.getElementById('text').value='';
+  selectedTags=[];
+  renderTags();
+  render();
+}
+
+/* 表示 */
+function render(){
+  const list=document.getElementById('list');
+
+  let filtered = entries.filter(e=>e.date===selectedDate);
+
+  if(starOnly) filtered = filtered.filter(e=>e.star);
+
+  if(filterTag){
+    filtered = filtered.filter(e=>e.tags.includes(filterTag));
+  }
+
+  list.innerHTML = filtered.map(e=>`
+    <div class="entry">
+      ${e.text}
+      <div>
+        ${e.tags.map(t=>`
+          <span class="tag" onclick="searchTag('${t}')">${t}</span>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* タグ検索 */
+function searchTag(tag){
+  filterTag = tag;
+  render();
+}
+
+/* フィルター解除 */
+function toggleStarFilter(){
+  starOnly=!starOnly;
+  render();
+}
+
+function prevMonth(){ current.setMonth(current.getMonth()-1); drawCalendar();}
+function nextMonth(){ current.setMonth(current.getMonth()+1); drawCalendar();}
+
+drawCalendar();
+render();
+renderTags();
+</script>
+
+</body>
+</html>
