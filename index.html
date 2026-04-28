@@ -1,0 +1,78 @@
+<!-- このまま丸ごと置き換えOK -->
+
+<script>
+function renderTags(){
+  var el=document.getElementById('tagList');
+  el.innerHTML='';
+
+  tags.forEach(function(t){
+    var span=document.createElement('span');
+    span.className='tag';
+
+    if(selectedTags.includes(t)){
+      span.classList.add('selected');
+    }
+
+    // タグ文字
+    var text=document.createElement('span');
+    text.innerText=t;
+    text.style.cursor="pointer";
+    text.onclick=function(){
+      toggleTag(t);
+      renderTags();
+    };
+
+    // ✏️編集
+    var edit=document.createElement('button');
+    edit.innerText='✏️';
+    edit.style.fontSize='10px';
+    edit.style.marginLeft='6px';
+    edit.onclick=function(e){
+      e.stopPropagation();
+      renameTag(t);
+    };
+
+    // 🗑削除
+    var del=document.createElement('button');
+    del.innerText='🗑';
+    del.style.fontSize='10px';
+    del.onclick=function(e){
+      e.stopPropagation();
+      deleteTag(t);
+    };
+
+    span.appendChild(text);
+    span.appendChild(edit);
+    span.appendChild(del);
+
+    el.appendChild(span);
+  });
+}
+
+/* タグ変更 */
+function renameTag(tag){
+  var newName=prompt("タグ名を変更する？",tag);
+  if(!newName)return;
+
+  tags = tags.map(t=>t===tag?newName:t);
+
+  entries.forEach(function(e){
+    e.tags = e.tags.map(t=>t===tag?newName:t);
+  });
+
+  saveAll();
+}
+
+/* タグ削除 */
+function deleteTag(tag){
+  if(!confirm("このタグを削除しても大丈夫？")) return;
+
+  tags = tags.filter(t=>t!==tag);
+
+  entries.forEach(function(e){
+    e.tags = e.tags.filter(t=>t!==tag);
+  });
+
+  saveAll();
+}
+</script>
