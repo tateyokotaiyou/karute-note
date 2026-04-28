@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>カルテノート</title>
+
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet">
+
+<style>
+*{ box-sizing:border-box; }
+
+body{
+  font-family:'M PLUS Rounded 1c',sans-serif;
+  background:#f4f8f4;
+  padding:20px;
+  padding-bottom:80px;
+}
+
+h2{ color:#6fbf73; }
+
+button{
+  border:none;
+  border-radius:8px;
+  padding:6px 10px;
+  margin:2px;
+  background:#dff5df;
+}
+
+.small-btn{
+  font-size:10px;
+  padding:2px 4px;
+}
+
+.type-btn{
+  background:#eaf6fb;
+  border:2px solid transparent;
+}
+.type-btn.active{
+  border:2px solid #7ec8e3;
+  background:#f0fbff;
+}
+
+.nav{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:10px 0;
+}
+
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+}
+
+.day{
+  padding:8px;
+  background:white;
+  border-radius:6px;
+  text-align:center;
+}
+
+.day.active{ background:#bfe8bf; }
+
+.tag{
+  display:inline-flex;
+  align-items:center;
+  background:#eef9ee;
+  padding:4px 8px;
+  border-radius:10px;
+  margin:4px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.tag.selected{
+  background:#cde7ff;
+}
+
+.entry{
+  background:white;
+  margin-top:10px;
+  padding:10px;
+  border-left:5px solid #8bbcf5;
+  border-radius:8px;
+}
+
+.entry.memo{
+  border-left:5px solid #f5c28b;
+}
+
+.meta{
+  font-size:11px;
+  color:#888;
+}
+
+textarea{
+  width:100%;
+  height:120px;
+}
+
+.small-title{
+  font-size:13px;
+  color:#444;
+}
+
+.tag-picker{
+  display:none;
+  background:#fff;
+  padding:5px;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>カルテノート</h2>
+
+<button id="backupBtn">📦 バックアップ</button><br>
+<input type="file" id="fileInput"><br>
+<button id="restoreBtn">復元</button>
+<div id="backupInfo" class="meta"></div>
+
+<hr>
+
+<div class="nav">
+<button id="prevYear">⏪</button>
+<button id="prevMonth">◀</button>
+<div id="monthLabel"></div>
+<button id="nextMonth">▶</button>
+<button id="nextYear">⏩</button>
+</div>
+
+<div id="calendar" class="calendar"></div>
+
+<hr>
+
+<button id="symptomBtn" class="type-btn active">🩺 症状</button>
+<button id="memoBtn" class="type-btn">💊 薬</button>
+
+<div>タグ</div>
+<input id="tagInput">
+<button id="addTagBtn">追加</button>
+<div id="tagList"></div>
+
+<div class="small-title">症状・その他メモ入力</div>
+<textarea id="text"></textarea>
+<button id="sendBtn">送信</button>
+
+<!-- ⭐ここ追加（フィルター） -->
+<div>
+  <button id="allBtn" class="type-btn active">すべて</button>
+  <button id="favBtn" class="type-btn">♡</button>
+</div>
+
+<div id="list"></div>
+
+<script>
+const el=id=>document.getElementById(id);
+
+let entries=JSON.parse(localStorage.getItem('data')||'[]');
+let tags=JSON.parse(localStorage.getItem('tags')||'[]');
+
+let selectedTags=[];
+let currentType='symptom';
+let filterMode='all'; // ⭐追加
+
+let current=new Date();
+let selectedDate=formatDate(current);
+
+function formatDate(d){
+  return d.toISOString().slice(0,10);
+}
+
+/* ⭐フィルターUI */
+function updateFilterUI(){
+  el('allBtn').classList.toggle('active',filterMode==='all');
+  el('favBtn').classList.toggle('active',filterMode==='fav');
+}
+
+el('allBtn').onclick=()=>{
+  filterMode='all';
+  update
