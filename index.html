@@ -1,0 +1,37 @@
+function drawCalendar(){
+  const y=current.getFullYear();
+  const m=current.getMonth();
+
+  monthLabel.innerText=y+"年 "+(m+1)+"月";
+  calendar.innerHTML='';
+
+  const firstDay=new Date(y,m,1).getDay();
+  const last=new Date(y,m+1,0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    calendar.appendChild(document.createElement('div'));
+  }
+
+  for(let i=1;i<=last;i++){
+    const d=y+"-"+String(m+1).padStart(2,'0')+"-"+String(i).padStart(2,'0');
+
+    const div=document.createElement('div');
+    div.className='day'+(d===selectedDate?' active':'');
+    div.innerText=i;
+
+    // ⭐曜日取得
+    const dayOfWeek = new Date(y, m, i).getDay();
+
+    // ⭐日曜なら赤枠
+    if(dayOfWeek === 0){
+      div.classList.add('sunday');
+    }
+
+    div.onclick=()=>{
+      selectedDate=d;
+      drawCalendar();
+    };
+
+    calendar.appendChild(div);
+  }
+}
